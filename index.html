@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>THE LIST</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Permanent+Marker&family=Reenie+Beanie&family=Shadows+Into+Light&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f4f1e8;
+    --paper-shade:#e9e4d5;
+    --rule:#9db8d8;
+    --margin:#d98b8b;
+    --pencil:#3a3a3a;
+    --pencil-soft:#5a5a58;
+    --ink:#c01818;
+    --ink-deep:#9a0f0f;
+    --blue:#1a3a8a;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html,body{height:100%;}
+  body{
+    background:#1a1814;
+    font-family:'Caveat',cursive;
+    overflow-x:hidden;
+    color:var(--pencil);
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ---------- PAPER ---------- */
+  .sheet{
+    position:relative;
+    max-width:760px;
+    margin:0 auto;
+    min-height:100vh;
+    background:
+      repeating-linear-gradient(
+        to bottom,
+        transparent 0px,
+        transparent 37px,
+        var(--rule) 37px,
+        var(--rule) 38px
+      ),
+      radial-gradient(ellipse at 30% 10%, #fbf9f1 0%, var(--paper) 55%, var(--paper-shade) 100%);
+    box-shadow:0 0 80px rgba(0,0,0,.7);
+    padding:70px 34px 140px 64px;
+    overflow:hidden;
+  }
+  /* paper grain */
+  .sheet::before{
+    content:"";
+    position:absolute;inset:0;
+    pointer-events:none;
+    opacity:.5;
+    mix-blend-mode:multiply;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.06'/%3E%3C/svg%3E");
+  }
+  /* red margin line */
+  .sheet::after{
+    content:"";
+    position:absolute;
+    top:0;bottom:0;left:48px;
+    width:2px;
+    background:var(--margin);
+    opacity:.7;
+  }
+
+  .stage{position:relative;z-index:2;}
+
+  /* ---------- ITEMS ---------- */
+  .item{
+    position:relative;
+    display:inline-block;
+    font-size:30px;
+    line-height:38px;
+    color:var(--pencil);
+    margin:0 14px 2px 0;
+    cursor:pointer;
+    user-select:none;
+    letter-spacing:.4px;
+    transition:transform .12s ease;
+    text-shadow:0 1px 0 rgba(0,0,0,.04);
+  }
+  .item:hover{color:#000;}
+  .item .lab{position:relative;z-index:2;display:inline-block;}
+  .row{margin-bottom:6px;position:relative;}
+
+  .pencil{color:var(--pencil-soft);font-weight:400;}
+  .marker{font-family:'Permanent Marker',cursive;color:var(--ink);font-size:24px;letter-spacing:0;}
+  .scrawl{font-family:'Reenie Beanie',cursive;color:var(--ink);font-size:30px;}
+  .tiny{font-size:22px;color:var(--pencil-soft);}
+  .blueink{color:var(--blue);}
+
+  /* slight hand rotations */
+  .r1{transform:rotate(-1.2deg);} .r2{transform:rotate(1.4deg);}
+  .r3{transform:rotate(-2.5deg);} .r4{transform:rotate(.8deg);}
+  .r5{transform:rotate(2.1deg);}
+
+  /* jitter for the "manic" build */
+  @keyframes jit{
+    0%,100%{transform:translate(0,0) rotate(var(--rot,0deg));}
+    25%{transform:translate(.6px,-.5px) rotate(calc(var(--rot,0deg) + .4deg));}
+    50%{transform:translate(-.5px,.4px) rotate(calc(var(--rot,0deg) - .5deg));}
+    75%{transform:translate(.4px,.5px) rotate(calc(var(--rot,0deg) + .3deg));}
+  }
+  body.manic .item{animation:jit .18s infinite;}
+  body.manic .annot{animation:jit .14s infinite;}
+
+  /* ---------- ANNOTATION LAYER (red pen) ---------- */
+  .annot{position:absolute;pointer-events:none;z-index:3;overflow:visible;}
+  .annot path,.annot ellipse,.annot line{
+    fill:none;stroke:var(--ink);stroke-width:2.4;
+    stroke-linecap:round;stroke-linejoin:round;
+    filter:drop-shadow(0 0 .3px rgba(150,15,15,.4));
+  }
+  .annot.deep path,.annot.deep ellipse,.annot.deep line{stroke:var(--ink-deep);}
+
+  .draw{stroke-dasharray:var(--len);stroke-dashoffset:var(--len);animation:draw 1s forwards ease-out;}
+  @keyframes draw{to{stroke-dashoffset:0;}}
+
+  /* struck-through (done) items */
+  .item.done .lab{color:#7a3030;opacity:.55;}
+  .strike{position:absolute;left:-4px;top:50%;width:calc(100% + 12px);height:14px;
+          transform:translateY(-50%);pointer-events:none;z-index:4;overflow:visible;}
+  .strike path{fill:none;stroke:var(--ink);stroke-width:3;stroke-linecap:round;
+          stroke-dasharray:var(--len);stroke-dashoffset:var(--len);animation:draw .35s forwards;}
+
+  /* boxed groups */
+  .box{position:relative;display:inline-block;padding:4px 8px;margin:4px 0;}
+  .boxborder{position:absolute;inset:-6px -8px;pointer-events:none;z-index:1;overflow:visible;}
+  .boxborder path{fill:none;stroke:var(--ink);stroke-width:2.2;}
+  .boxborder.blue path{stroke:var(--blue);stroke-width:2.6;}
+
+  /* floating chaos words */
+  .float{position:absolute;z-index:5;pointer-events:none;font-family:'Shadows Into Light',cursive;
+         color:var(--ink);opacity:0;font-size:26px;white-space:nowrap;}
+
+  /* ---------- HEADER ---------- */
+  .head{position:relative;z-index:2;margin-bottom:22px;}
+  .head h1{font-family:'Permanent Marker',cursive;font-size:46px;color:var(--pencil);
+           letter-spacing:1px;transform:rotate(-1.5deg);line-height:.95;}
+  .head .sub{font-family:'Reenie Beanie',cursive;font-size:26px;color:var(--ink);transform:rotate(1deg);margin-top:4px;}
+  .corner{position:absolute;top:-4px;right:0;font-family:'Reenie Beanie',cursive;
+          color:var(--pencil-soft);font-size:24px;transform:rotate(3deg);text-align:right;line-height:1.05;}
+
+  /* arrows + connectors */
+  .conn{position:absolute;z-index:3;pointer-events:none;overflow:visible;}
+  .conn path{fill:none;stroke:var(--ink);stroke-width:2;stroke-linecap:round;}
+  .conn .ah{fill:var(--ink);stroke:none;}
+
+  /* ---------- CONTROLS ---------- */
+  .bar{
+    position:fixed;left:50%;bottom:18px;transform:translateX(-50%);
+    z-index:40;display:flex;gap:10px;align-items:center;
+    background:rgba(20,18,15,.82);backdrop-filter:blur(6px);
+    border:1px solid rgba(192,24,24,.5);border-radius:40px;
+    padding:8px 14px;box-shadow:0 8px 30px rgba(0,0,0,.5);
+  }
+  .bar button{
+    font-family:'Permanent Marker',cursive;font-size:14px;letter-spacing:.5px;
+    background:transparent;color:#e9e4d5;border:1px solid rgba(233,228,213,.3);
+    border-radius:30px;padding:7px 14px;cursor:pointer;transition:.18s;
+  }
+  .bar button:hover{background:var(--ink);border-color:var(--ink);color:#fff;}
+  .bar .count{font-family:'Caveat',cursive;font-size:22px;color:#e9e4d5;padding:0 8px;min-width:74px;text-align:center;}
+  .bar .count b{color:var(--ink);font-family:'Permanent Marker';font-size:16px;}
+
+  /* footer wordmark */
+  .kk{position:absolute;bottom:18px;right:24px;z-index:6;
+      font-family:'Permanent Marker',cursive;font-size:13px;letter-spacing:3px;
+      color:var(--pencil);opacity:.18;transform:rotate(-1deg);pointer-events:none;}
+
+  /* vignette pulse when manic */
+  .pulse{position:fixed;inset:0;z-index:30;pointer-events:none;opacity:0;
+         box-shadow:inset 0 0 200px rgba(150,15,15,.55);transition:opacity .4s;}
+  body.manic .pulse{animation:breathe 1.6s infinite;}
+  @keyframes breathe{0%,100%{opacity:.15;}50%{opacity:.5;}}
+
+  @media(max-width:600px){
+    .sheet{padding:54px 18px 130px 50px;}
+    .item{font-size:25px;line-height:33px;}
+    .head h1{font-size:34px;}
+    .corner{font-size:18px;}
+  }
+</style>
+</head>
+<body>
+<div class="pulse"></div>
+
+<div class="sheet">
+  <div class="head">
+    <h1>THE&nbsp;LIST</h1>
+    <div class="sub">do not forget &mdash; check twice &mdash; check again</div>
+    <div class="corner">this book<br>&amp; the other book<br><span class="blueink">(both books)</span></div>
+  </div>
+
+  <div class="stage" id="stage">
+    <!-- items get injected; static scaffold below for structure -->
+  </div>
+
+  <div class="kk">KLINEKRAFT</div>
+</div>
+
+<div class="bar">
+  <button id="manicBtn">LOSE IT</button>
+  <div class="count" id="count"><b id="done">0</b> / <span id="total">0</span> packed</div>
+  <button id="resetBtn">START OVER</button>
+</div>
+
+<script>
+/* ---------------- DATA (genericized, nothing personal) ---------------- */
+const ITEMS = [
+  {t:"SUITCASE",       c:"marker",  r:"r3", a:"box"},
+  {t:"backpack (med)", c:"pencil",  r:"r2"},
+  {t:"backpack (small)",c:"pencil", r:"r1"},
+  {t:"2 glasses",      c:"",        r:"r4", a:"circle"},
+  {t:"SNORKEL",        c:"scrawl",  r:"r3", a:"circle", note:"pair 2 ??"},
+  {t:"baggies x4",     c:"pencil",  r:"r1"},
+  {t:"2nd shoes (if wet)", c:"tiny",r:"r2", strike:true},
+  {t:"boarding pass (2)",  c:"",    r:"r1", a:"box"},
+  {t:"luggage tags (4)",   c:"",    r:"r2", a:"box"},
+  {t:"stapler + tape", c:"scrawl",  r:"r3", a:"circle"},
+  {t:"FLASHLIGHTS (2)",c:"marker",  r:"r4", a:"circle"},
+  {t:"chargers",       c:"pencil",  r:"r1", note:"bluetooth?"},
+  {t:"CORDS",          c:"marker",  r:"r2", a:"box", note:"bedside / 6ft"},
+  {t:"brown vest",     c:"pencil",  r:"r3"},
+  {t:"gloves",         c:"pencil",  r:"r1"},
+  {t:"ponchos (2)",    c:"",        r:"r2", a:"circle"},
+  {t:"swim trunks",    c:"pencil",  r:"r4", strike:true},
+  {t:"t-shirts",       c:"pencil",  r:"r1", check:true},
+  {t:"briefs",         c:"pencil",  r:"r2", check:true},
+  {t:"gym clothes",    c:"tiny",    r:"r3", a:"circle"},
+  {t:"2 empty bottles",c:"tiny",    r:"r1", note:"16oz / 500ml"},
+  {t:"toiletry bag",   c:"scrawl",  r:"r2", a:"circle"},
+  {t:"toothbrush",     c:"pencil",  r:"r4", a:"circle"},
+  {t:"razor",          c:"pencil",  r:"r1", a:"circle"},
+  {t:"soap",           c:"pencil",  r:"r2", check:true},
+  {t:"eye mask",       c:"scrawl",  r:"r3", a:"box"},
+  {t:"clothing clips", c:"tiny",    r:"r1"},
+  {t:"receipts",       c:"pencil",  r:"r2", note:"(+)"},
+];
+
+const FLOATS = ["did i pack it?","CHECK AGAIN","where is it","TWICE","two of those","circle it","NO WAIT","again","is it in the bag","DOUBLE CHECK","both books","again again"];
+
+/* helper: rough hand-drawn ellipse path around a box */
+function ellipsePath(w,h){
+  const cx=w/2, cy=h/2, rx=w/2, ry=h/2;
+  let d=`M ${cx-rx} ${cy} `;
+  const segs=14;
+  for(let i=0;i<=segs;i++){
+    const ang=(i/segs)*Math.PI*2 - Math.PI;
+    const jx=(Math.random()-.5)*5, jy=(Math.random()-.5)*5;
+    const x=cx+Math.cos(ang)*rx*1.12+jx;
+    const y=cy+Math.sin(ang)*ry*1.35+jy;
+    d+=`L ${x.toFixed(1)} ${y.toFixed(1)} `;
+  }
+  return d;
+}
+function boxPath(w,h){
+  const j=()=>(Math.random()-.5)*4;
+  return `M ${j()} ${j()} L ${w+j()} ${j()} L ${w+j()} ${h+j()} L ${j()} ${h+j()} Z`;
+}
+function strikePath(w){
+  const j=()=>(Math.random()-.5)*5;
+  return `M 0 ${7+j()} C ${w*.3} ${j()}, ${w*.6} ${14+j()}, ${w} ${5+j()}`;
+}
+
+const stage=document.getElementById('stage');
+const totalEl=document.getElementById('total');
+const doneEl=document.getElementById('done');
+let doneCount=0;
+
+function buildRow(it){
+  const row=document.createElement('div'); row.className='row';
+  const span=document.createElement('span');
+  span.className='item '+(it.c||'')+' '+(it.r||'');
+  const rotMap={r1:'-1.2deg',r2:'1.4deg',r3:'-2.5deg',r4:'.8deg',r5:'2.1deg'};
+  span.style.setProperty('--rot',rotMap[it.r]||'0deg');
+
+  const lab=document.createElement('span'); lab.className='lab'; lab.textContent=it.t;
+  span.appendChild(lab);
+
+  if(it.note){
+    const n=document.createElement('span'); n.className='scrawl'; n.style.marginLeft='12px';
+    n.style.fontSize='22px'; n.textContent=it.note; n.style.opacity='.85';
+    span.appendChild(n);
+  }
+  row.appendChild(span);
+
+  // pre-existing red annotation (circle/box) drawn over the item
+  if(it.a){
+    requestAnimationFrame(()=>{
+      const w=lab.offsetWidth+24, h=lab.offsetHeight+10;
+      const svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+      svg.setAttribute('class','annot'+(Math.random()>.6?' deep':''));
+      svg.setAttribute('width',w+20); svg.setAttribute('height',h+20);
+      svg.style.left=(lab.offsetLeft-12)+'px';
+      svg.style.top=(span.offsetTop-2)+'px';
+      const p=document.createElementNS('http://www.w3.org/2000/svg','path');
+      const d=it.a==='circle'?ellipsePath(w,h):boxPath(w+6,h+6);
+      p.setAttribute('d',d);
+      const len=it.a==='circle'?w*3.4:(w+h)*2.2;
+      p.setAttribute('class','draw'); p.style.setProperty('--len',len);
+      p.style.animationDelay=(Math.random()*1.4)+'s';
+      svg.appendChild(p);
+      span.appendChild(svg);
+    });
+  }
+
+  // strike-out interaction
+  function strike(){
+    if(span.classList.contains('done')) return;
+    span.classList.add('done');
+    const s=document.createElementNS('http://www.w3.org/2000/svg','svg');
+    s.setAttribute('class','strike');
+    const w=lab.offsetWidth+12;
+    s.setAttribute('width',w); s.setAttribute('height',16); s.setAttribute('viewBox',`0 0 ${w} 16`);
+    const p=document.createElementNS('http://www.w3.org/2000/svg','path');
+    p.setAttribute('d',strikePath(w)); p.style.setProperty('--len',w*1.4);
+    s.appendChild(p); span.appendChild(s);
+    doneCount++; doneEl.textContent=doneCount;
+    spawnFloat();
+  }
+  span.addEventListener('click',strike);
+  if(it.strike||it.check){ requestAnimationFrame(()=>setTimeout(strike,300+Math.random()*900)); }
+
+  return row;
+}
+
+ITEMS.forEach(it=>stage.appendChild(buildRow(it)));
+totalEl.textContent=ITEMS.length;
+
+/* floating chaos words */
+function spawnFloat(){
+  const f=document.createElement('div'); f.className='float';
+  f.textContent=FLOATS[Math.floor(Math.random()*FLOATS.length)];
+  const sheet=document.querySelector('.sheet');
+  f.style.left=(40+Math.random()*(sheet.offsetWidth-160))+'px';
+  f.style.top=(80+Math.random()*(sheet.offsetHeight-240))+'px';
+  f.style.transform='rotate('+((Math.random()-.5)*30)+'deg)';
+  f.style.fontSize=(20+Math.random()*22)+'px';
+  sheet.appendChild(f);
+  const dur=2200+Math.random()*1800;
+  f.animate(
+    [{opacity:0,transform:f.style.transform+' scale(.6)'},
+     {opacity:.85,offset:.2},
+     {opacity:.85,offset:.7},
+     {opacity:0,transform:f.style.transform+' scale(1.25)'}],
+    {duration:dur,easing:'ease-out'}
+  ).onfinish=()=>f.remove();
+}
+
+/* MANIC mode */
+let manicTimer=null;
+const manicBtn=document.getElementById('manicBtn');
+manicBtn.addEventListener('click',()=>{
+  document.body.classList.toggle('manic');
+  if(document.body.classList.contains('manic')){
+    manicBtn.textContent='BREATHE';
+    manicTimer=setInterval(()=>{ for(let i=0;i<2;i++) spawnFloat(); }, 320);
+  }else{
+    manicBtn.textContent='LOSE IT';
+    clearInterval(manicTimer);
+  }
+});
+
+/* RESET */
+document.getElementById('resetBtn').addEventListener('click',()=>{
+  document.querySelectorAll('.item.done').forEach(el=>{
+    el.classList.remove('done');
+    el.querySelectorAll('.strike').forEach(s=>s.remove());
+  });
+  doneCount=0; doneEl.textContent=0;
+});
+
+/* idle floats so the page always feels alive */
+setInterval(()=>{ if(!document.body.classList.contains('manic')&&Math.random()>.6) spawnFloat(); }, 2600);
+</script>
+</body>
+</html>
